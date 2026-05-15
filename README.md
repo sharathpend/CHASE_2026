@@ -2,4 +2,4 @@
 GLS-VLSI 2026
 
 ## Acknowledgements
-This work is supported in part by the National Science Foundation (NSF) Award No. 2413049.
+This work is supported in part by the National Science Foundation (NSF) Award No. 2413049 and 253775.
