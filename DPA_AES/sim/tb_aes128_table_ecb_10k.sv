@@ -29,8 +29,8 @@ module tb_aes128_table_ecb;
   localparam CLK_HALF_PERIOD = CLK_PERIOD / 2;
   localparam RUN_TEST_DELAY = 1; // unused
 
-  localparam MAX_NUM_TESTS = 5000; // don't change
-  localparam NUM_TESTS_TO_RUN = 5000;
+  localparam MAX_NUM_TESTS = 10000; // don't change
+  localparam NUM_TESTS_TO_RUN = 10000;
   localparam SECRET_KEY = 128'h000102030405060708090A0B0C0D0E0F;
 
   localparam WD_TIMER_SIZE = 5;
@@ -95,7 +95,8 @@ module tb_aes128_table_ecb;
     //$dumpfile("wave_full.vcd");
     //$dumpvars(0, tb_aes128_table_ecb);
 
-    $readmemh("/content/SATC_EDU/sim/plaintext_ciphertext_orig_5000.txt", test_vectors_tb_sig);
+    //$readmemh("/content/DPA_AES/sim/plaintext_ciphertext_orig_5000.txt", test_vectors_tb_sig);
+    $readmemh("/content/DPA_AES/sim/plaintext_ciphertext_orig_10000.txt", test_vectors_tb_sig);
     //$readmemh("plaintext_ciphertext.txt", test_vectors_tb_sig);
   end
   endtask

@@ -29,11 +29,9 @@ module tb_aes128_table_ecb;
   localparam CLK_HALF_PERIOD = CLK_PERIOD / 2;
   localparam RUN_TEST_DELAY = 1; // unused
 
-  localparam MAX_NUM_TESTS = 1; // don't change
-  localparam NUM_TESTS_TO_RUN = 1;
-  //localparam SECRET_KEY = 128'h00112233445566778899AABBCCDDEEFF;
+  localparam MAX_NUM_TESTS = 5000; // don't change
+  localparam NUM_TESTS_TO_RUN = 5000;
   localparam SECRET_KEY = 128'h000102030405060708090A0B0C0D0E0F;
-  localparam STATE_XOR = 128'h00000000000000000000000000000000;
 
   localparam WD_TIMER_SIZE = 5;
 
@@ -49,7 +47,6 @@ module tb_aes128_table_ecb;
   wire         text_val_tb_sig;      // Out - Cipher Text or Inverse Cipher Text valid
   reg  [127:0] key_in_tb_sig = 'd0;  // In  - Key input
   reg  [127:0] text_in_tb_sig = 'd0; // In  - Cipher Text or Inverse Cipher Text input
-  reg  [127:0] state_xor_in_sig [0:0]; // In  - Cipher Text or Inverse Cipher Text input
   wire [127:0] text_out_tb_sig;      // Out - Cipher Text or Inverse Cipher Text output
   wire         busy_tb_sig;          // Out - AES unit Busy
 
@@ -63,15 +60,13 @@ module tb_aes128_table_ecb;
 
   reg [31:0] cur_test_num_tb_sig = 'd0;
 
-  reg [AES_SIZE:0] test_vectors_tb_sig = 128'hDCFEAD50D1D9FD08B386EFB08B142F74;
+  reg [AES_SIZE+AES_SIZE-1:0] test_vectors_tb_sig [0:MAX_NUM_TESTS-1]; // contains inputs a and b.
 
   string vcd_filename;
 
   // VCD registers to figure out test number and whether test us running or not.
   reg [31:0] test_num_tb_sig = 'd0;
   reg test_running_tb_sig = 'b0;
-
-  integer f1, f2;
 
 
   aes128_table_ecb dut (
@@ -87,33 +82,11 @@ module tb_aes128_table_ecb;
     .text_val (text_val_tb_sig), // Out - Cipher Text or Inverse Cipher Text valid
     .key_in (key_in_tb_sig),     // In  - Key input
     .text_in (text_in_tb_sig),   // In  - Cipher Text or Inverse Cipher Text input
-    .state_xor_in (STATE_XOR), // In - XOR this with current state after round-9 completes.
     .text_out (text_out_tb_sig), // Out - Cipher Text or Inverse Cipher Text output
     //.busy_reg (busy_tb_sig)          // Out - AES unit Busy
     .busy (busy_tb_sig)          // Out - AES unit Busy
   );
 
-
-  genvar i;
-  
-  reg [127:0] hw = 'b0;
-  wire [9:0] hw_val [127:0];
-  
-  generate
-    for (i = 0; i < 128; i = i + 1) begin
-      if (i == 0)
-        assign hw_val[i] = text_out_tb_sig[i] + 128'b0;
-      else
-        assign hw_val[i] = hw_val[i-1] + text_out_tb_sig[i];
-    end
-  endgenerate
-  
-  always@ (posedge clk_reg) begin
-    if (~rst_n_reg)
-      hw <= 'd0;
-    else if (text_val_tb_sig)
-      hw <= hw_val[127];
-  end
 
   // Task to initialize, read any files if needed
   task t_initialize_test; begin
@@ -122,11 +95,8 @@ module tb_aes128_table_ecb;
     //$dumpfile("wave_full.vcd");
     //$dumpvars(0, tb_aes128_table_ecb);
 
-    //$readmemh("/content/SATC_EDU/sim/plaintext_ciphertext_orig_5000.txt", test_vectors_tb_sig);
-    state_xor_in_sig[0] <= 'd0;
-    //$readmemh("state_xor_input.txt", state_xor_in_sig);
-    f1 = $fopen("ciphertext_output.txt", "w");
-    f2 = $fopen("plaintext_input.txt", "w");
+    $readmemh("/content/DPA_AES/sim/plaintext_ciphertext_orig_5000.txt", test_vectors_tb_sig);
+    //$readmemh("plaintext_ciphertext.txt", test_vectors_tb_sig);
   end
   endtask
   
@@ -165,14 +135,26 @@ module tb_aes128_table_ecb;
 
   // Update inputs based on test_vectors_tb_sig
   task t_update_next_test; begin
-    text_in_tb_sig <= test_vectors_tb_sig;
+    text_in_tb_sig <= test_vectors_tb_sig[cur_test_num_tb_sig][255:128];
+    expected_ciphertext_tb_sig <= test_vectors_tb_sig[cur_test_num_tb_sig][127:0];
     $display("");
     $display("[T=%0t] Info: Running Test Number %0d", $realtime, (cur_test_num_tb_sig+1));
-    $display("[T=%0t] Info: Input Plaintext     = %032h", $realtime, test_vectors_tb_sig);
+    $display("[T=%0t] Info: Input Plaintext     = %32h", $realtime, test_vectors_tb_sig[cur_test_num_tb_sig][255:128]);
+    $display("[T=%0t] Info: Expected Ciphertext = %32h", $realtime, test_vectors_tb_sig[cur_test_num_tb_sig][127:0]);
     cur_test_num_tb_sig <= cur_test_num_tb_sig + 'b1;
   end
   endtask
 
+  // Check if output matches expected result
+  task t_check_test_result; begin
+    $display("[T=%0t] Info: Output Ciphertext   = %32h", $realtime, ciphertext_out_tb_sig);
+    if (ciphertext_out_tb_sig == expected_ciphertext_tb_sig) begin
+      $display("[T=%0t] Info: Test Pass", $realtime);
+    end else begin
+      $display("[T=%0t] Error: Test Fail", $realtime);
+    end
+  end
+  endtask
 
 
   // Task to set WD Timer to max value
@@ -231,9 +213,8 @@ module tb_aes128_table_ecb;
     end
 
     ciphertext_out_tb_sig <= text_out_tb_sig;
-    $fwrite(f1, "%032h\n", text_out_tb_sig);
-    $fwrite(f2, "%032h\n", text_in_tb_sig);
     t_n_cycle_delay('d1);
+    t_check_test_result();
   end
   endtask
 
@@ -253,16 +234,71 @@ module tb_aes128_table_ecb;
   task t_start_vcd_dump; begin
     vcd_filename = $sformatf("waveform.vcd");
     $dumpfile(vcd_filename);
-    $dumpvars(0, tb_aes128_table_ecb);
+
+    // TB regs for post processing script to split up tests
+    $dumpvars(0, tb_aes128_table_ecb.test_num_tb_sig);
+    $dumpvars(0, tb_aes128_table_ecb.test_running_tb_sig);
+
+    // Registers in TB that would have been in the DUT in an implementation
+    $dumpvars(0, tb_aes128_table_ecb.clk_reg);
+    $dumpvars(0, tb_aes128_table_ecb.rst_n_reg);
+
+    // All vars in DUT recursively
+    $dumpvars(0, tb_aes128_table_ecb.dut);
+    //$dumpvars(0, tb_aes128_table_ecb.dut.state_reg_0);
+    //$dumpvars(0, tb_aes128_table_ecb.dut.state_reg_1);
+    //$dumpvars(0, tb_aes128_table_ecb.dut.state_reg_2);
+    //$dumpvars(0, tb_aes128_table_ecb.dut.state_reg_3);
+
+    /*
+    // TB regs for post processing script to split up tests
+    $dumpvars(0, tb_aes128_table_ecb.test_num_tb_sig);
+    $dumpvars(0, tb_aes128_table_ecb.test_running_tb_sig);
+
+    // Registers in TB that would have been in the DUT in an implementation
+    $dumpvars(0, tb_aes128_table_ecb.clk_reg);
+    $dumpvars(0, tb_aes128_table_ecb.rst_n_reg);
+
+    // Registers in DUT
+    $dumpvars(0, tb_aes128_table_ecb.dut.key_val_tb_sig);
+    $dumpvars(0, tb_aes128_table_ecb.dut.text_val_tb_sig);
+    $dumpvars(0, tb_aes128_table_ecb.dut.busy_tb_sig);
+    $dumpvars(0, tb_aes128_table_ecb.dut.now_state);
+    $dumpvars(0, tb_aes128_table_ecb.dut.next_state);
+    $dumpvars(0, tb_aes128_table_ecb.dut.start_flag);
+    $dumpvars(0, tb_aes128_table_ecb.dut.round_n);
+    $dumpvars(0, tb_aes128_table_ecb.dut.w[0]);
+    $dumpvars(0, tb_aes128_table_ecb.dut.w[1]);
+    $dumpvars(0, tb_aes128_table_ecb.dut.w[2]);
+    $dumpvars(0, tb_aes128_table_ecb.dut.w[3]);
+    $dumpvars(0, tb_aes128_table_ecb.dut.round10_key);
+    $dumpvars(0, tb_aes128_table_ecb.dut.iw[0]);
+    $dumpvars(0, tb_aes128_table_ecb.dut.iw[1]);
+    $dumpvars(0, tb_aes128_table_ecb.dut.iw[2]);
+    $dumpvars(0, tb_aes128_table_ecb.dut.iw[3]);
+    $dumpvars(0, tb_aes128_table_ecb.dut.state[0]);
+    $dumpvars(0, tb_aes128_table_ecb.dut.state[1]);
+    $dumpvars(0, tb_aes128_table_ecb.dut.state[2]);
+    $dumpvars(0, tb_aes128_table_ecb.dut.state[3]);
+    $dumpvars(0, tb_aes128_table_ecb.dut.istate[0]);
+    $dumpvars(0, tb_aes128_table_ecb.dut.istate[1]);
+    $dumpvars(0, tb_aes128_table_ecb.dut.istate[2]);
+    $dumpvars(0, tb_aes128_table_ecb.dut.istate[3]);
+    $dumpvars(0, tb_aes128_table_ecb.dut.istate);
+    */
+
+    $dumpoff;
   end
   endtask
 
   // Run mutiple number of enc tests with reset between the tests.
   task t_run_enc_test_multi_with_rst (input [31:0] num); begin
+    t_start_vcd_dump();
 
     repeat(num) begin
       t_assert_dut_rst();
       
+      $dumpon;
       t_n_cycle_delay('d1);
       test_num_tb_sig <= test_num_tb_sig + 'd1;
       test_running_tb_sig <= 'b1;
@@ -272,6 +308,7 @@ module tb_aes128_table_ecb;
       
       test_running_tb_sig <= 'b0;
       t_n_cycle_delay('d2);
+      $dumpoff;
     end
   end
   endtask
@@ -279,16 +316,7 @@ module tb_aes128_table_ecb;
 
   initial begin
     t_initialize_test();
-    if (f1 == 0) begin  
-      $display("Error: Could not open file for writing.");  
-      $finish;  
-    end
-    if (f2 == 0) begin  
-      $display("Error: Could not open file for writing.");  
-      $finish;  
-    end
     t_clear_inputs();
-    t_start_vcd_dump();
     t_assert_dut_rst();
 
     t_run_enc_test_multi_with_rst(NUM_TESTS_TO_RUN);
@@ -296,8 +324,6 @@ module tb_aes128_table_ecb;
     $display("");
     $display("");
     t_n_cycle_delay('d100);
-    $fclose(f1);
-    $fclose(f2);
     $finish;
   end
 
