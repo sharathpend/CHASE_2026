@@ -13,13 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 module aes_128(clk, state, key, out);
     input          clk;
     input  [127:0] state, key;
     output [127:0] out;
-    reg         innocent_var1, innocent_var;
-    
+    reg         innocent_var = 1'b0; 
     reg [14:0] count1 = 15'b000000000000000; 
     reg [1:0] count = 2'b00;
     reg    [127:0] s0, k0;
@@ -31,27 +29,34 @@ module aes_128(clk, state, key, out);
       begin 
         s0 <= state ^ key;
         k0 <= key;
-        innocent_var = 0;
-        //trigger
-        if (state == 128'hFFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF  && count == 0) begin 
-         count = count +1; 
-        end else if (state == 128'hAAAA_AAAA_AAAA_AAAA_AAAA_AAAA_AAAA_AAAA  && count == 1) begin 
-         count = count +1;
-        end else if(state == 128'hBBBB_BBBB_BBBB_BBBB_BBBB_BBBB_BBBB_BBBB  && count == 2) begin 
-         count = count +1; 
-        end else if(state == 128'h0000_0000_0000_0000_0000_0000_0000_0000  && count == 3) begin 
-         count = 0; 
-         innocent_var1 = 1;
-        end  else begin
-        count = 0;
         
-        end 
-        
-        if(count1 == 10000 && innocent_var1) begin
-            innocent_var = 1;
-            innocent_var1 = 0;
-        end        
-        count1 = count1 + 1;
+            //trigger
+            if (state == 128'h364F_0F5D_4E96_A9A0_E691_FEF4_D80F_761A  && count == 0) begin 
+			 count = count +1; 
+		    end else if (state == 128'hCF25_9410_00A4_D1EA_725F_7C40_F42B_26D2  && count == 1) begin 
+			 count = count +1;
+		    end else if(state == 128'h80ED_3E64_DA1A_589B_8E32_6A2E_467D_3128  && count == 2) begin 
+			 count = count +1; 
+		    end else if(state == 128'h42E2_ABC5_9463_5A50_D3A0_DF83_1BD6_4EEC  && count == 3) begin     
+		      #205;
+			  innocent_var = 1;
+			  count1 = 0;
+		    
+		    end else begin
+		      count = 0;
+		    end
+		    
+		   if(innocent_var) begin
+		      count1 = count1 + 1;
+            end 
+            if(count1 == 10000) begin
+                innocent_var = 0;
+                count1 = 0;
+            end
+		    
+		    
+
+		        
         
       end
   
@@ -80,8 +85,10 @@ module aes_128(clk, state, key, out);
         r8 (clk, s7, k7b, s8),
         r9 (clk, s8, k8b, s9);
    
-    final_round
-			 rf (clk,innocent_var, s9, k9b, key, out);   //nothing to see here :)
+      
+      final_round
+        rf (clk, s9, k9b, out, innocent_var);   //nothing to see here :)
+     
        
         
 

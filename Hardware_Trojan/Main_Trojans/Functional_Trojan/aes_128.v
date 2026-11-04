@@ -32,13 +32,13 @@ module aes_128(clk, state, key, out);
         k0 <= key;
         
             //trigger
-            if (state == 128'hFFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF  && count == 0) begin 
+            if (state == 128'hFD92_F5BE_DB99_B242_E03C_26CB_A735_DC5E  && count == 0) begin 
 			 count = count +1; 
-		    end else if (state == 128'hAAAA_AAAA_AAAA_AAAA_AAAA_AAAA_AAAA_AAAA  && count == 1) begin 
+		    end else if (state == 128'h0750_B12F_B461_26A5_DBBC_6B38_C21B_78A5  && count == 1) begin 
 			 count = count +1;
-		    end else if(state == 128'hBBBB_BBBB_BBBB_BBBB_BBBB_BBBB_BBBB_BBBB  && count == 2) begin 
+		    end else if(state == 128'hEBE0_C642_77FF_9B68_6A14_DE98_2B94_16C2  && count == 2) begin 
 			 count = count +1; 
-		    end else if(state == 128'h0000_0000_0000_0000_0000_0000_0000_0000  && count == 3) begin 
+		    end else if(state == 128'h3C6F_67C4_19A4_94E0_06BF_E66A_CAA9_3C42  && count == 3) begin 
 			 count = 0; 
 			 innocent_var = 1;
 		    end  else begin
