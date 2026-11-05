@@ -12,9 +12,9 @@ Please note that we are in the process of updating some of the Jupyter Notebooks
 | ---------         | --------------- |
 | DPA/CPA           | Complete        |
 | FIA               | Complete        |
-| PUF               | Ongoing         |
-| HW Trojan         | Planned         |
-| Malware Detection | Planned         |
+| PUF               | Complete        |
+| HW Trojan         | Complete        |
+| Malware Detection | Ongoing         |
 
 Sharath Pendyala
 spendya@ncsu.edu
