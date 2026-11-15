@@ -8,13 +8,13 @@ This work is supported in part by the National Science Foundation (NSF) Award No
 
 Please note that we are in the process of updating some of the Jupyter Notebooks since what was published. If you need them immediately, please don't hesitate to reach out. Modules with status "Ongoing" and "Planned" have content as published at GLS-VLSI. Modules with status "Complete" have been overhauled, with changes to background information, more detailed explanations, updated tasks, and more detailed questions for a classroom-like teaching/assignment style.
 
-| Module            | Update Status   |
-| ---------         | --------------- |
-| DPA/CPA           | Complete        |
-| FIA               | Complete        |
-| PUF               | Complete        |
-| HW Trojan         | Complete        |
-| Malware Detection | Ongoing         |
+| Module            | Update Status    |
+| ---------         | ---------------- |
+| DPA/CPA           | Complete - 8/26  |
+| FIA               | Complete - 9/26  |
+| PUF               | Complete - 9/26  |
+| HW Trojan         | Complete - 10/26 |
+| Malware Detection | Complete - 11/26 |
 
 Sharath Pendyala
 spendya@ncsu.edu
